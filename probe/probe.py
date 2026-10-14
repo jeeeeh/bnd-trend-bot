@@ -2,19 +2,16 @@ import requests, re
 H={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36","Accept-Language":"ko-KR,ko;q=0.9"}
 G="26007159"
 t=requests.get(f"https://nol.yanolja.com/ticket/products/{G}",headers=H,timeout=20).text
-t2=t.replace('\\"','"')
-for k in ["goodsStatus","saleStatus","salesStatus","bookingStatus","goodsSaleStatus","playDate","playSeq","bookable","isSale","ticketOpen","bookingOpen","goodsName","playStartDate","playEndDate","bookingEndDate","onSale","soldOut","예매대기","예매하기","판매예정","판매종료","api-ticketfront","/v1/","ticket-api","apiBase","gateway"]:
-    for m in list(re.finditer(re.escape(k),t2))[:3]:
-        print(f"[{k}]", t2[max(0,m.start()-150):m.end()+250].replace("\n"," "))
-        print("--")
-chunks=sorted(set(re.findall(r'/_next/static/chunks/[^"\'\s]+\.js',t)))
-print("CHUNKS",len(chunks))
-base="https://nol.yanolja.com"
-for c in chunks:
-    try:
-        js=requests.get(base+c,headers=H,timeout=20).text
+srcs=sorted(set(re.findall(r'(?:src|href)="([^"]+\.js)"',t)) | set(re.findall(r'"(/_next/static/[^"]+\.js)"',t.replace('\\"','"'))))
+print("JS files",len(srcs))
+hosts=set()
+for c in srcs:
+    u=c if c.startswith("http") else "https://nol.yanolja.com"+c
+    try: js=requests.get(u,headers=H,timeout=20).text
     except Exception: continue
-    for k in ["playSeq","remainSeat","PlaySeq","bookableDate","playDate"]:
-        for m in list(re.finditer(k,js))[:2]:
-            print(f"JS {c} [{k}]", js[max(0,m.start()-250):m.end()+250].replace("\n"," "))
+    for h in re.findall(r'https://[a-zA-Z0-9.\-]+(?:yanolja|interpark|nol)[a-zA-Z0-9.\-]*\.(?:com|kr)[^"\'`\s]{0,60}',js): hosts.add(h)
+    for k in ["ticketDates","playSeqs","play-seq","playseq","/dates","schedules","bookableDates","remain"]:
+        for m in list(re.finditer(re.escape(k),js))[:2]:
+            print(f"JS {u[-40:]} [{k}]", js[max(0,m.start()-300):m.end()+300].replace("\n"," "))
             print("--")
+print("HOSTS"); [print(" ",h) for h in sorted(hosts)[:80]]
