@@ -23,6 +23,8 @@ CFG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
 HIST = ROOT / "data" / "suggest_history.json"
 
 YT_KEY = os.environ.get("YOUTUBE_API_KEY", "")
+NAVER_ID = os.environ.get("NAVER_CLIENT_ID", "")
+NAVER_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 CHAT_IDS = [c.strip() for c in os.environ.get("CHAT_ID", "").split(",") if c.strip()]
 
@@ -95,6 +97,71 @@ def collect_suggestions(seeds, prefixes, lang):
                     top.append(rest)
             time.sleep(0.25)
     return out, top
+
+
+def member_suggestions():
+    """멤버별 자동완성 상위 3개 (그룹·멤버 이름은 떼고)"""
+    strip = CFG["self_words"] + CFG["member_names"]
+    out = {}
+    for m, seeds in CFG["member_seeds"].items():
+        got = []
+        for seed in seeds:
+            try:
+                items = suggest(seed + " ", "ko")
+            except Exception as e:
+                errors.append(f"멤버 자동완성({seed}): {str(e)[:60]}")
+                continue
+            for it in items:
+                rest = remainder(it, strip)
+                if len(rest) >= 2 and rest not in got and NORM(rest) not in EXCLUDE:
+                    got.append(rest)
+            time.sleep(0.25)
+        out[m] = got[:3]
+    return out
+
+
+def combo_ranking():
+    """조합명 네이버 검색량 (데이터랩). 5그룹씩만 비교돼서 '보넥도'를 기준점으로 같이 넣고 환산"""
+    if not (NAVER_ID and NAVER_SECRET):
+        errors.append("조합명: 네이버 키 없음")
+        return []
+    amb = set(CFG["combo_ambiguous"])
+    groups = []
+    for names, members in CFG["combos"]:
+        kws = []
+        for n in names.split("|"):
+            kws += [f"보넥도 {n}"] if n in amb else [n, f"보넥도 {n}"]
+        groups.append({"groupName": names.split("|")[0], "keywords": kws[:20], "members": members})
+    start = YDAY - timedelta(days=6)
+    anchor = {"groupName": "__anchor", "keywords": ["보넥도", "보이넥스트도어"]}
+    res = []
+    for i in range(0, len(groups), 4):
+        batch = groups[i:i + 4]
+        body = {"startDate": str(start), "endDate": str(YDAY), "timeUnit": "date",
+                "keywordGroups": [anchor] + [{"groupName": g["groupName"], "keywords": g["keywords"]} for g in batch]}
+        try:
+            r = requests.post("https://naverapihub.apigw.ntruss.com/search-trend/v1/search", json=body, timeout=20,
+                              headers={"X-NCP-APIGW-API-KEY-ID": NAVER_ID, "X-NCP-APIGW-API-KEY": NAVER_SECRET,
+                                       "Content-Type": "application/json"})
+            if not r.ok:
+                raise RuntimeError(f"{r.status_code}: {r.text[:120]}")
+            data = {x["title"]: {d["period"]: d["ratio"] for d in x["data"]} for x in r.json()["results"]}
+        except Exception as e:
+            errors.append(f"조합명 검색량: {e}")
+            continue
+        a_sum = sum(data.get("__anchor", {}).values()) or 1
+        a_y = data.get("__anchor", {}).get(str(YDAY), 0) or 1
+        for g in batch:
+            d = data.get(g["groupName"], {})
+            week = sum(d.values()) / a_sum * 1000
+            yday = d.get(str(YDAY), 0) / a_y * 1000
+            if week > 0:
+                res.append({"name": g["groupName"], "members": g["members"], "week": week,
+                            "rising": yday > week / 7 * 1.5 and yday > 0})
+        time.sleep(0.2)
+    res.sort(key=lambda x: -x["week"])
+    print(f"조합명 검색량 있는 것: {len(res)}개")
+    return res
 
 
 # ───────── 2·3) 유튜브 영상·댓글 ─────────
@@ -249,63 +316,80 @@ def korean_title(t):
     return bool(HANGUL.search(body)) if body.strip() else bool(HANGUL.search(t))
 
 
-def build_message(ko_cur, ko_top, hist, questions, videos):
-    links = []  # [(번호기호, 영상id)]
-
-    def ref(vid):
-        for mark, v in links:
-            if v == vid:
-                return mark
-        mark = CIRCLE[len(links)] if len(links) < len(CIRCLE) else f"({len(links) + 1})"
-        links.append((mark, vid))
-        return mark
-
-    out = [f"🎧 보넥도, 요즘 사람들은 뭘 궁금해할까?",
-           f"📅 {YDAY.month}/{YDAY.day}({DOW[YDAY.weekday()]}) 기준 · 유튜브", ""]
+def build_messages(ko_cur, ko_top, hist, questions, videos, members, combos):
+    N = CFG["list_n"]
+    head = [f"🎧 보넥도, 요즘 사람들은 뭘 궁금해할까?",
+            f"📅 {YDAY.month}/{YDAY.day}({DOW[YDAY.weekday()]}) 기준 · 유튜브·네이버"]
+    secs = []
 
     # 1) 검색어
-    out += [LINE, "🔎 유튜브에서 많이 찾는 검색어", LINE]
-    out += [f"{i + 1}. {q}" for i, q in enumerate(ko_top[:8])] or ["(없음)"]
+    s1 = [LINE, "🔎 유튜브에서 많이 찾는 검색어", LINE]
+    s1 += [f"{i + 1}. {q}" for i, q in enumerate(ko_top[:N])] or ["(없음)"]
     day_new = new_since(ko_cur, hist, "ko", 1, 1)
     week_new = new_since(ko_cur, hist, "ko", 2, 7)
-    out.append("")
+    s1.append("")
     if day_new is None:
-        out.append("🆕 새로 뜬 검색어는 내일부터 비교돼요")
+        s1.append("🆕 새로 뜬 검색어는 내일부터 비교돼요")
     else:
-        out.append("🆕 어제보다 새로 뜬 검색어")
-        out += [f"· {q}" for q in day_new[:6]] or ["· 없음"]
+        s1.append("🆕 어제보다 새로 뜬 검색어")
+        s1 += [f"· {q}" for q in day_new[:N]] or ["· 없음"]
         if week_new is not None:
-            out += ["", "🆕 이번 주 새로 뜬 검색어"]
-            out += [f"· {q}" for q in week_new[:6]] or ["· 없음"]
+            s1 += ["", "🆕 이번 주 새로 뜬 검색어"]
+            s1 += [f"· {q}" for q in week_new[:N]] or ["· 없음"]
+    secs.append(s1)
 
-    # 2) 뜨는 영상
+    # 2) 멤버별
+    s2 = [LINE, "👤 멤버별 많이 찾는 검색어", LINE]
+    for m, qs in members.items():
+        s2.append(f"[{m}] " + (" · ".join(qs) if qs else "-"))
+    secs.append(s2)
+
+    # 3) 조합명
+    s3 = [LINE, "💞 많이 검색된 조합명 (네이버, 최근 7일)", LINE]
+    for i, c in enumerate(combos[:N]):
+        s3.append(f"{i + 1}. {c['name']} ({c['members']}){' 🔺' if c['rising'] else ''}")
+    if not combos:
+        s3.append("(검색량 데이터 없음)")
+    else:
+        s3.append("🔺 = 어제 검색이 평소보다 많음")
+    secs.append(s3)
+
+    # 4) 뜨는 영상
     hot = [v for v in videos if TITLE_OK.search(v["title"]) and korean_title(v["title"])]
-    hot = sorted(hot, key=lambda v: -v["per_day"])[:3]
-    out += ["", LINE, "🔥 요즘 뜨는 영상 (최근 7일)", LINE]
+    hot = sorted(hot, key=lambda v: -v["per_day"])[:N]
+    s4 = [LINE, "🔥 요즘 뜨는 영상 (최근 7일)", LINE]
     for i, v in enumerate(hot):
-        out.append(f"{CIRCLE[i]} {short(v['title'], 40)}")
-        out.append(f"    └ 하루 평균 {fmt_views(v['per_day'])}회")
-        out.append(f"    https://youtu.be/{v['id']}")
+        s4 += [f"{CIRCLE[i]} {short(v['title'], 40)}", f"    └ 하루 평균 {fmt_views(v['per_day'])}회",
+               f"    https://youtu.be/{v['id']}"]
     if not hot:
-        out.append("(없음)")
+        s4.append("(없음)")
+    secs.append(s4)
 
-    # 3) 질문
-    n = CFG["questions_n"]
-    day = sorted((r for r in questions if r[0] == YDAY), key=lambda r: -r[1])[:n]
+    # 5) 질문
+    day = sorted((r for r in questions if r[0] == YDAY), key=lambda r: -r[1])[:N]
     shown = {r[2] for r in day}
-    week = sorted((r for r in questions if r[2] not in shown), key=lambda r: -r[1])[:n]
-    out += ["", LINE, "❓ 팬들이 궁금해하는 질문", LINE]
+    week = sorted((r for r in questions if r[2] not in shown), key=lambda r: -r[1])[:N]
+    s5 = [LINE, "❓ 팬들이 궁금해하는 질문", LINE]
     for title, group in (("[어제]", day), ("[최근 7일]", week)):
-        out.append(title)
+        s5.append(title)
         for d, likes, text, vt, vid in group:
-            out.append(f"· \"{short(text, 60)}\"")
-            out.append(f"    └ 👍{likes:,}")
-            out.append(f"    https://youtu.be/{vid}")
+            s5 += [f"· \"{short(text, 60)}\"", f"    └ 👍{likes:,}", f"    https://youtu.be/{vid}"]
         if not group:
-            out.append("· 없음")
-        out.append("")
+            s5.append("· 없음")
+        s5.append("")
+    secs.append(s5)
 
-    return "\n".join(out).rstrip()
+    # 텔레그램 한 메시지 4096자 제한 → 섹션 단위로 나눔
+    msgs, cur = [], "\n".join(head)
+    for sec in secs:
+        block = "\n".join(sec).rstrip()
+        if len(cur) + len(block) + 2 > 3900:
+            msgs.append(cur)
+            cur = block
+        else:
+            cur += "\n\n" + block
+    msgs.append(cur)
+    return msgs
 
 
 def send(text):
@@ -323,15 +407,18 @@ def main():
     print(f"자동완성 검색어: {len(ko_cur)}")
     videos = collect_videos()
     ko_q, _ = collect_questions(videos)
+    members = member_suggestions()
+    combos = combo_ranking()
     hist = load_hist()
-    text = build_message(ko_cur, ko_top, hist, ko_q, videos)
-    print(text)
+    msgs = build_messages(ko_cur, ko_top, hist, ko_q, videos, members, combos)
+    print("\n\n====\n\n".join(msgs))
     for e in errors[:15]:
         print("!", e)
     hist[str(TODAY)] = {"ko": ko_cur}
     save_hist(hist)
     if BOT_TOKEN and CHAT_IDS and os.environ.get("DRY_RUN") != "true":
-        send(text)
+        for m in msgs:
+            send(m)
 
 
 if __name__ == "__main__":
