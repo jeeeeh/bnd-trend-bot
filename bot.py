@@ -85,6 +85,8 @@ def collect_suggestions(seeds, prefixes, lang):
                 rest = remainder(s, CFG["self_words"])
                 if len(rest) < 2 or NORM(rest) in EXCLUDE:
                     continue
+                if lang == "en" and rest in EN_FILLER:
+                    continue
                 if (lang == "ko") != bool(HANGUL.search(rest)):
                     continue  # 한국은 한글 검색어만, 영어는 한글 없는 검색어만
                 out.setdefault(rest, 0)
@@ -149,8 +151,23 @@ def collect_videos():
     return list(vids.values())
 
 
-KO_Q = re.compile(r"\?|궁금|뭐(예요|에요|야|임|지|죠|였)|무슨|언제|어디|누구|왜 |몇 |어떻게|어떤|나요|까요|건가요|인가요|알려주|아시는 ?분|아는 ?사람")
-EN_Q = re.compile(r"\?|anyone know|does anyone|can someone|i wonder|wondering", re.I)
+# 감탄문("어떻게 저렇게 잘생김")은 빼고 진짜 질문만: 물음표, 또는 질문형 어미/표현
+KO_Q = re.compile(r"[가-힣a-z0-9]\s*\?|궁금|알려주|아시는 ?분|아는 ?사람|제목 ?(이|좀|뭐)|"
+                  r"(뭐예요|뭐에요|뭐야|뭐임|뭔가요|뭐죠|뭐지|나요|까요|가요|인가|건가|는지|냐|니|어요|아요|죠)(?=\s*($|[ㅋㅎㅠㅜ.!~^]))")
+KO_WH = re.compile(r"언제|어디|누구|뭐|왜|몇|무슨|어떤|어느")
+KO_END = re.compile(r"(요|나|까|니|냐|지|죠|가|래)[\sㅋㅎㅠㅜ.!~^]*$")
+
+
+def is_ko_question(t):
+    """물음표·질문형 어미, 또는 의문사(언제/뭐/왜…)가 있고 요/나/까… 로 끝나는 문장"""
+    if KO_Q.search(t):
+        return True
+    t = re.sub(r"[^\w\sㅋㅎㅠㅜ.!~^]", "", t).strip()  # 이모지 제거
+    return bool(KO_WH.search(t) and KO_END.search(t))
+
+
+EN_Q = re.compile(r"[a-z0-9]\s*\?|anyone know|does anyone|can someone|i wonder|wondering", re.I)
+EN_FILLER = {"what", "who", "how", "why", "when", "where", "is", "the", "and", "in", "on", "a", "an", "to", "of", "for", "with", "vs"}
 SPAM = re.compile(r"https?://|www\.|구독|sub4sub|check out my|my channel", re.I)
 
 
@@ -177,7 +194,7 @@ def collect_questions(videos):
                     continue
                 row = (d, int(c.get("likeCount", 0)) + int(it["snippet"].get("totalReplyCount", 0)), text, v["title"], v["id"])
                 if HANGUL.search(text):
-                    if KO_Q.search(text):
+                    if is_ko_question(text):
                         ko.append(row); seen.add(key)
                 elif re.search(r"[A-Za-z]{3}", text) and EN_Q.search(text):
                     en.append(row); seen.add(key)
@@ -243,8 +260,17 @@ def section_questions(flag, rows, n):
     return "\n".join(out)
 
 
+TITLE_OK = re.compile("|".join(re.escape(w) for w in CFG["title_words"]), re.I)
+
+
+def is_english(t):
+    letters = re.findall(r"[^\W\d_]", t)
+    return letters and sum(c.isascii() for c in letters) / len(letters) > 0.8
+
+
 def section_videos(videos, korean, n):
-    pick = [v for v in videos if bool(HANGUL.search(v["title"])) == korean]
+    pick = [v for v in videos if TITLE_OK.search(v["title"])
+            and (HANGUL.search(v["title"]) if korean else is_english(v["title"]))]
     pick = sorted(pick, key=lambda v: -v["per_day"])[:n]
     if not pick:
         return "   (없음)"
