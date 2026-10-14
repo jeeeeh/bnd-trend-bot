@@ -3,7 +3,7 @@
 
 - 한국: 네이버 블로그·뉴스(NAVER API HUB)에서 보이넥스트도어 관련 글을 모아
         같이 언급된 키워드 TOP 10 (전일 / 최근 7일) + 네이버 데이터랩 검색량 변화
-- 영어: 구글 뉴스 RSS + Reddit 에서 같이 언급된 키워드 TOP 10 (전일 / 최근 7일)
+- 영어: 구글 뉴스 RSS + Bluesky 에서 같이 언급된 키워드 TOP 10 (전일 / 최근 7일)
 - 🔥 = 지난주 평소보다 전일에 2배 이상 많이 언급된 키워드
 """
 import html
@@ -162,21 +162,35 @@ def collect_english():
                 docs.append((d, title))
         except Exception as e:
             errors.append(f"구글 뉴스: {e}")
-    for url in ("https://www.reddit.com/r/boynextdoor/new.json?limit=100",
-                "https://www.reddit.com/search.json?q=boynextdoor&sort=new&t=month&limit=100"):
-        try:
-            r = requests.get(url, headers=UA, timeout=20)
-            r.raise_for_status()
-            for c in r.json()["data"]["children"]:
-                p = c["data"]
-                d = datetime.fromtimestamp(p["created_utc"], KST).date()
-                if p["id"] in seen or not (PREV_START <= d <= YDAY):
+    for q in ("boynextdoor", "#boynextdoor"):
+        cursor = None
+        for _ in range(5):
+            try:
+                params = {"q": q, "sort": "latest", "limit": 100, "lang": "en"}
+                if cursor:
+                    params["cursor"] = cursor
+                r = requests.get("https://api.bsky.app/xrpc/app.bsky.feed.searchPosts", params=params, headers=UA, timeout=20)
+                r.raise_for_status()
+                j = r.json()
+            except Exception as e:
+                errors.append(f"Bluesky: {str(e)[:80]}")
+                break
+            oldest = None
+            for p in j.get("posts", []):
+                rec = p.get("record", {})
+                try:
+                    d = datetime.fromisoformat(rec["createdAt"].replace("Z", "+00:00")).astimezone(KST).date()
+                except Exception:
                     continue
-                seen.add(p["id"])
-                docs.append((d, p.get("title", "") + " " + (p.get("selftext") or "")[:300]))
-        except Exception as e:
-            errors.append(f"Reddit: {str(e)[:80]}")
-        time.sleep(1)
+                oldest = d
+                if p["uri"] in seen or not (PREV_START <= d <= YDAY):
+                    continue
+                seen.add(p["uri"])
+                docs.append((d, rec.get("text", "")))
+            cursor = j.get("cursor")
+            if not cursor or (oldest and oldest < PREV_START):
+                break
+            time.sleep(0.5)
     print(f"영어 글 {len(docs)}건")
     return docs
 
@@ -200,12 +214,15 @@ def rank(docs, terms_fn):
             week.update(ts); nw += 1
         else:
             prev.update(ts); npv += 1
-    def hot(t, c, n):
-        base = (week[t] - day[t] + prev[t]) / max(nw - nd + npv, 1)  # 전일을 뺀 13일 평균 비율
-        return n and c / n >= CFG["hot_ratio"] * base and c >= 3
+    def surge(t, c):
+        base = (week[t] - day[t] + prev[t] + 1) / max(nw - nd + npv, 1)  # 전일을 뺀 13일 평균 비율
+        return (c / max(nd, 1)) / base
     top = CFG["top_n"]
     min_c = 2
-    day_top = [(t, c, hot(t, c, nd)) for t, c in day.most_common(top * 3) if c >= min_c][:top]
+    cand = [(t, c) for t, c in day.most_common(top * 3) if c >= min_c][:top]
+    ranked = sorted((x for x in cand if x[1] >= 5 and surge(*x) >= CFG["hot_ratio"]), key=lambda x: -surge(*x))
+    hot = {t for t, _ in ranked[: CFG["hot_max"]]}
+    day_top = [(t, c, t in hot) for t, c in cand]
     week_top = [(t, c, False) for t, c in week.most_common(top * 3) if c >= min_c][:top]
     return day_top, week_top, nd, nw
 
