@@ -1,0 +1,77 @@
+===== https://api-ticketfront.interpark.com/v1/goods/26007159/summary?goodsCode=26007159&priceGrade=&seatGrade= 403 520
+  has playSeq False
+  has bookable False
+  has remainSeat False
+  has 예매 False
+  has 판매 False
+  has schedule False
+===== https://api-ticketfront.interpark.com/v1/goods/26007159/playSeq?endDate=20261231&goodsCode=26007159&isBookableDate=true&page=1&pageSize=1550&startDate=20261201 403 520
+  has playSeq False
+  has bookable False
+  has remainSeat False
+  has 예매 False
+  has 판매 False
+  has schedule False
+===== https://api-ticketfront.interpark.com/v1/goods/26007159/playSeq?endDate=20261231&goodsCode=26007159&isBookableDate=false&page=1&pageSize=1550&startDate=20261201 403 520
+  has playSeq False
+  has bookable False
+  has remainSeat False
+  has 예매 False
+  has 판매 False
+  has schedule False
+===== https://nol.yanolja.com/ticket/products/26007159 200 232307
+  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg
+  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg\\\
+  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg
+  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg\\\
+  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png
+  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png\\\
+  url: http://ticketimage.interpark.com/Play/Place/13/13811062_000.jpg\\\
+  url: http://ticketimage.interpark.com/Play/Place/13/13811062_002.jpg\\\
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg\\\
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg\\\
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg\\\
+  url: http://ticketimage.interpark.com/PlayDictionary/DATA/PlayDic/PlayDicUpload/040011/26/07/0400112607_84031_M.wmv.mp
+  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg
+  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg\
+  url: http://ticketimage.interpark.com/undefined2026/05/06/7c67d631.jpg\\\
+  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif
+  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\
+  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\\\
+  has playSeq False
+  has bookable False
+  has remainSeat False
+  has 예매 True
+  has 판매 True
+  has schedule False
+===== https://tickets.interpark.com/goods/26007159 200 232307
+  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg
+  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg\\\
+  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg
+  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg\\\
+  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png
+  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png\\\
+  url: http://ticketimage.interpark.com/Play/Place/13/13811062_000.jpg\\\
+  url: http://ticketimage.interpark.com/Play/Place/13/13811062_002.jpg\\\
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg\\\
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg\\\
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg
+  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg\\\
+  url: http://ticketimage.interpark.com/PlayDictionary/DATA/PlayDic/PlayDicUpload/040011/26/07/0400112607_84031_M.wmv.mp
+  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg
+  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg\
+  url: http://ticketimage.interpark.com/undefined2026/05/06/7c67d631.jpg\\\
+  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif
+  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\
+  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\\\
+  has playSeq False
+  has bookable False
+  has remainSeat False
+  has 예매 True
+  has 판매 True
+  has schedule False
