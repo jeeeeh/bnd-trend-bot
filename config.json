@@ -188,7 +188,43 @@
     "com",
     "www",
     "kpop",
-    "k-pop"
+    "k-pop",
+    "video",
+    "videos",
+    "shorts",
+    "youtube",
+    "subscribe",
+    "channel",
+    "watch",
+    "official",
+    "mv",
+    "lol",
+    "omg",
+    "love",
+    "so",
+    "much",
+    "very",
+    "really",
+    "im",
+    "dont",
+    "its",
+    "thats",
+    "here",
+    "there",
+    "would",
+    "could",
+    "them",
+    "these",
+    "those",
+    "than",
+    "then",
+    "also",
+    "only",
+    "even",
+    "still",
+    "because",
+    "every",
+    "everyone"
   ],
   "hot_max": 3,
   "exclude_artists": [
@@ -525,5 +561,12 @@
     "jaehyun's"
   ],
   "members": [],
-  "top_words": 5
+  "top_words": 5,
+  "yt_queries": [
+    "보이넥스트도어",
+    "보넥도",
+    "BOYNEXTDOOR"
+  ],
+  "yt_top_videos": 15,
+  "yt_comments_per_video": 100
 }

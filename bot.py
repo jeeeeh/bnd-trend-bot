@@ -1,9 +1,9 @@
 """
 보넥도 트렌드 봇 (매일 아침 8시, GitHub Actions, 완전 무료)
 
-- 한국: 네이버 블로그·뉴스(NAVER API HUB)에서 보이넥스트도어 관련 글을 모아
+- 한국: 네이버 블로그(NAVER API HUB) + 유튜브(한글 제목·설명·댓글)에서 보이넥스트도어 관련 글을 모아
         같이 언급된 키워드 TOP 10 (전일 / 최근 7일) + 네이버 데이터랩 검색량 변화
-- 영어: 구글 뉴스 RSS + Bluesky 에서 같이 언급된 키워드 TOP 10 (전일 / 최근 7일)
+- 영어: 유튜브(영어 제목·설명·댓글) + Bluesky 에서 같이 언급된 키워드 TOP 10 (전일 / 최근 7일)
 - 🔥 = 지난주 평소보다 전일에 2배 이상 많이 언급된 키워드
 """
 import html
@@ -26,6 +26,7 @@ CFG = json.load(open(os.path.join(ROOT, "config.json"), encoding="utf-8"))
 NAVER_ID = os.environ.get("NAVER_CLIENT_ID", "")
 NAVER_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "")
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
+YT_KEY = os.environ.get("YOUTUBE_API_KEY", "")
 CHAT_IDS = [c.strip() for c in os.environ.get("CHAT_ID", "").split(",") if c.strip()]
 
 KST = timezone(timedelta(hours=9))
@@ -71,7 +72,7 @@ def naver_get(path, **params):
 def collect_korean():
     """(날짜, 텍스트) 목록. 최근 14일치 (지난 7일 + 비교용 이전 7일)"""
     docs, seen = [], set()
-    for kind in ("blog", "news"):
+    for kind in ("blog",):
         for q in CFG["ko_queries"]:
             for start in range(1, 1000, 100):
                 try:
@@ -98,7 +99,7 @@ def collect_korean():
                     docs.append((d, clean(it["title"]) + " " + clean(it.get("description", ""))))
                 if oldest and oldest < PREV_START:
                     break  # 더 오래된 글까지 내려왔으면 그만
-    print(f"한국 글 {len(docs)}건")
+    print(f"네이버 블로그 {len(docs)}건")
     return docs
 
 
@@ -176,20 +177,6 @@ def ko_terms(text):
 # ───────── 영어: 구글 뉴스 + Reddit ─────────
 def collect_english():
     docs, seen = [], set()
-    for q in CFG["en_queries"]:
-        url = f"https://news.google.com/rss/search?q={quote(q)}+when:14d&hl=en-US&gl=US&ceid=US:en"
-        try:
-            root = ET.fromstring(requests.get(url, headers=UA, timeout=20).content)
-            for it in root.iter("item"):
-                title = it.findtext("title") or ""
-                title = re.sub(r"\s+-\s+[^-]+$", "", title)  # 끝의 " - 언론사명" 제거
-                d = parsedate_to_datetime(it.findtext("pubDate")).astimezone(KST).date()
-                if title in seen or not (PREV_START <= d <= YDAY):
-                    continue
-                seen.add(title)
-                docs.append((d, title))
-        except Exception as e:
-            errors.append(f"구글 뉴스: {e}")
     for q in ("boynextdoor", "#boynextdoor"):
         cursor = None
         for _ in range(5):
@@ -219,7 +206,7 @@ def collect_english():
             if not cursor or (oldest and oldest < PREV_START):
                 break
             time.sleep(0.5)
-    print(f"영어 글 {len(docs)}건")
+    print(f"Bluesky {len(docs)}건")
     return docs
 
 
@@ -240,6 +227,87 @@ def en_terms(text):
         else:
             prev = None
     return words, pairs
+
+
+
+# ───────── 유튜브 (YouTube Data API v3, 무료 하루 1만 단위 중 약 1천 사용) ─────────
+HANGUL = re.compile(r"[가-힣]")
+
+
+def yt_get(path, **params):
+    params["key"] = YT_KEY
+    r = requests.get(f"https://www.googleapis.com/youtube/v3/{path}", params=params, timeout=20)
+    if not r.ok:
+        raise RuntimeError(f"{path} {r.status_code}: {r.text[:150]}")
+    return r.json()
+
+
+def collect_youtube():
+    """(한국 docs, 영어 docs). 영상 제목+설명, 그리고 조회수 상위 영상의 최근 댓글"""
+    ko, en = [], []
+    if not YT_KEY:
+        errors.append("유튜브: YOUTUBE_API_KEY가 없어요")
+        return ko, en
+
+    def add(d, text):
+        if not (PREV_START <= d <= YDAY) or not text.strip():
+            return
+        if HANGUL.search(text):
+            ko.append((d, text))
+        elif len(re.findall(r"[A-Za-z]", text)) >= 10:
+            en.append((d, text))
+
+    after = datetime.combine(PREV_START, datetime.min.time(), KST).isoformat()
+    videos = {}
+    for q in CFG["yt_queries"]:
+        token = None
+        for _ in range(3):
+            try:
+                params = {"part": "snippet", "q": q, "type": "video", "order": "date",
+                          "publishedAfter": after, "maxResults": 50}
+                if token:
+                    params["pageToken"] = token
+                j = yt_get("search", **params)
+            except Exception as e:
+                errors.append(f"유튜브 검색: {e}")
+                break
+            for it in j.get("items", []):
+                vid = it["id"].get("videoId")
+                if vid and vid not in videos:
+                    sn = it["snippet"]
+                    d = datetime.fromisoformat(sn["publishedAt"].replace("Z", "+00:00")).astimezone(KST).date()
+                    videos[vid] = d
+                    add(d, clean(sn.get("title", "")) + " " + clean(sn.get("description", "")))
+            token = j.get("nextPageToken")
+            if not token:
+                break
+    print(f"유튜브 영상 {len(videos)}개")
+
+    # 최근 7일 영상 중 조회수 상위 N개의 댓글
+    recent = [v for v, d in videos.items() if d >= WEEK_START]
+    views = {}
+    for i in range(0, len(recent), 50):
+        try:
+            j = yt_get("videos", part="statistics", id=",".join(recent[i:i + 50]))
+            for it in j.get("items", []):
+                views[it["id"]] = int(it.get("statistics", {}).get("viewCount", 0))
+        except Exception as e:
+            errors.append(f"유튜브 조회수: {e}")
+    top = sorted(views, key=views.get, reverse=True)[: CFG["yt_top_videos"]]
+    nc = 0
+    for vid in top:
+        try:
+            j = yt_get("commentThreads", part="snippet", videoId=vid, order="time",
+                       maxResults=CFG["yt_comments_per_video"], textFormat="plainText")
+        except Exception:
+            continue  # 댓글 막힌 영상
+        for it in j.get("items", []):
+            c = it["snippet"]["topLevelComment"]["snippet"]
+            d = datetime.fromisoformat(c["publishedAt"].replace("Z", "+00:00")).astimezone(KST).date()
+            add(d, c.get("textDisplay", ""))
+            nc += 1
+    print(f"유튜브 댓글 {nc}개 (영상 {len(top)}개) → 한국 {len(ko)} / 영어 {len(en)}")
+    return ko, en
 
 
 # ───────── 집계 ─────────
@@ -275,8 +343,8 @@ def rank(docs, terms_fn):
 
     n, m = CFG["top_n"], CFG["top_words"]
     return {
-        "day_pairs": top_of(day["p"], n, True, "p"), "day_words": top_of(day["w"], m, True, "w"),
-        "week_pairs": top_of(week["p"], n, False, "p"), "week_words": top_of(week["w"], m, False, "w"),
+        "day_pairs": top_of(day["p"], n, True, "p"), "day_words": top_of(day["w"], m * 4, True, "w")[: m * 4],
+        "week_pairs": top_of(week["p"], n, False, "p"), "week_words": top_of(week["w"], m * 4, False, "w")[: m * 4],
         "nd": nd, "nw": nw,
     }
 
@@ -300,9 +368,11 @@ def words_line(items):
 
 def section(flag, title, r, key, n):
     pairs, words = r[f"{key}_pairs"], r[f"{key}_words"]
-    out = [f"{flag} <b>{title}</b> (글 {n}건)", fmt_list(pairs)]
+    in_pairs = {w for t, _, _ in pairs for w in t.split()}
+    words = [x for x in words if x[0] not in in_pairs]  # 조합에 이미 나온 단어는 생략
+    out = [f"{flag} <b>{title}</b> (글·영상·댓글 {n}건)", fmt_list(pairs)]
     if words:
-        out.append(words_line(words))
+        out.append(words_line(words[: CFG["top_words"]]))
     return "\n".join(out)
 
 
@@ -331,8 +401,9 @@ def send(text):
 def main():
     if not (NAVER_ID and NAVER_SECRET):
         sys.exit("NAVER_CLIENT_ID / NAVER_CLIENT_SECRET이 없어요.")
-    ko = rank(collect_korean(), ko_terms)
-    en = rank(collect_english(), en_terms)
+    yt_ko, yt_en = collect_youtube()
+    ko = rank(collect_korean() + yt_ko, ko_terms)
+    en = rank(collect_english() + yt_en, en_terms)
     dl = datalab()
     text = build_message(ko, en, dl)
     print(text)
