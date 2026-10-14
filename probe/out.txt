@@ -1,77 +1,23 @@
-===== https://api-ticketfront.interpark.com/v1/goods/26007159/summary?goodsCode=26007159&priceGrade=&seatGrade= 403 520
-  has playSeq False
-  has bookable False
-  has remainSeat False
-  has 예매 False
-  has 판매 False
-  has schedule False
-===== https://api-ticketfront.interpark.com/v1/goods/26007159/playSeq?endDate=20261231&goodsCode=26007159&isBookableDate=true&page=1&pageSize=1550&startDate=20261201 403 520
-  has playSeq False
-  has bookable False
-  has remainSeat False
-  has 예매 False
-  has 판매 False
-  has schedule False
-===== https://api-ticketfront.interpark.com/v1/goods/26007159/playSeq?endDate=20261231&goodsCode=26007159&isBookableDate=false&page=1&pageSize=1550&startDate=20261201 403 520
-  has playSeq False
-  has bookable False
-  has remainSeat False
-  has 예매 False
-  has 판매 False
-  has schedule False
-===== https://nol.yanolja.com/ticket/products/26007159 200 232307
-  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg
-  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg\\\
-  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg
-  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg\\\
-  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png
-  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png\\\
-  url: http://ticketimage.interpark.com/Play/Place/13/13811062_000.jpg\\\
-  url: http://ticketimage.interpark.com/Play/Place/13/13811062_002.jpg\\\
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg\\\
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg\\\
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg\\\
-  url: http://ticketimage.interpark.com/PlayDictionary/DATA/PlayDic/PlayDicUpload/040011/26/07/0400112607_84031_M.wmv.mp
-  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg
-  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg\
-  url: http://ticketimage.interpark.com/undefined2026/05/06/7c67d631.jpg\\\
-  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif
-  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\
-  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\\\
-  has playSeq False
-  has bookable False
-  has remainSeat False
-  has 예매 True
-  has 판매 True
-  has schedule False
-===== https://tickets.interpark.com/goods/26007159 200 232307
-  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg
-  url: http://ticketimage.interpark.com/260071592026/06/05/2aa4d111.jpg\\\
-  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg
-  url: http://ticketimage.interpark.com/260071592026/09/30/d5efcf90.jpg\\\
-  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png
-  url: http://ticketimage.interpark.com/260071592026/10/12/0206bca2.png\\\
-  url: http://ticketimage.interpark.com/Play/Place/13/13811062_000.jpg\\\
-  url: http://ticketimage.interpark.com/Play/Place/13/13811062_002.jpg\\\
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-11.jpg\\\
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-25.jpg\\\
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg
-  url: http://ticketimage.interpark.com/Play/image/etc/26/26007159-30.jpg\\\
-  url: http://ticketimage.interpark.com/PlayDictionary/DATA/PlayDic/PlayDicUpload/040011/26/07/0400112607_84031_M.wmv.mp
-  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg
-  url: http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg\
-  url: http://ticketimage.interpark.com/undefined2026/05/06/7c67d631.jpg\\\
-  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif
-  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\
-  url: https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif\\\
-  has playSeq False
-  has bookable False
-  has remainSeat False
-  has 예매 True
-  has 판매 True
-  has schedule False
+[goodsStatus] "2026-05-15 14:00:00","bookingEndTime":"2026-11-29 15:30:59","posterImageUrl":"https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif","goodsStatus":"Y","relationCode":"0","relationSortSeq":"0","excludedNOLGoods":false,"safeBookingGoods":false,"paidMemberGoods":false,"bookingEndTimeCode":"18015","bookingEndTimeName":"관람 3시간 전까지","cancelableTimeCode":"25004","cancelableTimeName":"전일 17:00","deli
+--
+[bookingOpen] 5","salesTypeCode":"21001","salesTypeName":"일반","seatTypeCode":"DM003","seatTypeName":"단독판매","playStartDate":"2026-06-11","playEndDate":"2027-02-21","bookingOpenTime":"2026-05-15 14:00:00","bookingEndTime":"2026-11-29 15:30:59","posterImageUrl":"https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif","goodsStatus":"Y","relationCode":"0","relationSortSeq":"0","excludedNOLGoods":false,"safeBookin
+--
+[bookingOpen] nt":86,"purchaserAverageRating":4.7}}],["$","$L3c",null,{"sections":"$23:props:sections"}],["$","$L3d",null,{"productId":"26007159","ticketDates":[],"bookingOpenTime":"2026-05-15 14:00:00","hideDates":false,"openTypeName":"$undefined"}],["$","$L3e",null,{"goodsDetail":"$7:props:children:props:children:1:props:goodsDetail","venue":{"placeCode":"15711202","placeName":"NOL 유니플렉스","placeGroupCode":"13811062","pl
+--
+[goodsName] ateRating\\",\\"ratingValue\\":4.7,\\"reviewCount\\":86}}"}}],["$","$L1f",null,{"goodsDetail":{"goodsKey":"26007159:15711202","goodsCode":"26007159","goodsName":"뮤지컬 〈빨래〉 - 32차 프로덕션","placeCode":"15711202","placeName":"NOL 유니플렉스 2관","bizCode":"19409","placeBizCode":"20509","bizName":"주식회사 씨에이치수박","corporationName":"주식회사 씨에이치수박","subGoodsName":"32차 프로덕션","reservedSeat":true,"kindOfGoodsCode":"01011","kindOf
+--
+[goodsName] 112607_84031_M.wmv.mp4","thumbnailSrc":"http://ticketimage.interpark.com/playdb/media/040011/26/07/0400112607_84031_M.wmv.jpg"}],"genreCode":"01011","goodsName":"뮤지컬 〈빨래〉 - 32차 프로덕션","showNoldayBadge":false,"goodsProperty":"$7:props:children:props:children:1:props:goodsDetail:property"}],["$","header",null,{"id":"goods-title","className":"d_flex jc_space-between mt_20px gap_12px laptopDown:px_mobileContent
+--
+[playStartDate] ":"14세 이상 관람가","runningTime":"165","interMissionTime":"15","salesTypeCode":"21001","salesTypeName":"일반","seatTypeCode":"DM003","seatTypeName":"단독판매","playStartDate":"2026-06-11","playEndDate":"2027-02-21","bookingOpenTime":"2026-05-15 14:00:00","bookingEndTime":"2026-11-29 15:30:59","posterImageUrl":"https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif","goodsStatus":"Y","relationCode":"0","rel
+--
+[playStartDate] intTypeCode":"69001","printTypeName":"발권+티켓","leisureOptionCode":"67001","leisureOptionName":"옵션없음","deliveryInfo":"","useMobileTicket":false,"seatDisplayStartDateTime":"1900-01-01 00:00:00","lotteryApplyStartDateTime":null,"lotteryApplyEndDateTime":null,"lotteryAnnounceDateTime":null,"blockedCountryList":[]},"sport":null,"propertyList":["C5015","C5020","C5025","C5027","Q2033","Q2034"],"globalTypeList":["EN","
+--
+[playEndDate] "165","interMissionTime":"15","salesTypeCode":"21001","salesTypeName":"일반","seatTypeCode":"DM003","seatTypeName":"단독판매","playStartDate":"2026-06-11","playEndDate":"2027-02-21","bookingOpenTime":"2026-05-15 14:00:00","bookingEndTime":"2026-11-29 15:30:59","posterImageUrl":"https://ticketimage.interpark.com/Play/image/large/26/26007159_p.gif","goodsStatus":"Y","relationCode":"0","relationSortSeq":"0","excluded
+--
+[예매대기] th fill="#FF974A" d="M12.722 16.111a2.222 2.222 0 1 1-4.444 0z"></path></svg><button type="button" class="d_flex ai_center cg_2px h_20px" aria-label="예매대기 정보 보기"><span class="textStyle_body.14.bold c_semantic.text.neutralMain">예매대기</span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 16" class="w_16px h_16px c_semantic.text.neutralMedium"><path stroke="#8B8D92" stroke-linecap="rou
+--
+[예매대기] <button type="button" class="d_flex ai_center cg_2px h_20px" aria-label="예매대기 정보 보기"><span class="textStyle_body.14.bold c_semantic.text.neutralMain">예매대기</span><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 17 16" class="w_16px h_16px c_semantic.text.neutralMedium"><path stroke="#8B8D92" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.3" d="M8.5 5.333h.007m-.007 2v3.3
+--
+[예매대기] PeriodControl":false,"useProduction":true,"extraInfo":"","propertyPlayStartTime":"","propertyPlayEndTime":""},{"propertyCode":"C5027","propertyName":"예매대기","propertyStartTime":"","propertyEndTime":"","usePeriodControl":false,"useProduction":true,"extraInfo":"","propertyPlayStartTime":"","propertyPlayEndTime":""},{"propertyCode":"Q2033","propertyName":"KOPIS 정보제공동의","propertyStartTime":"","propertyEndT
+--
+CHUNKS 23
