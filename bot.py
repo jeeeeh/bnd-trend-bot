@@ -116,8 +116,11 @@ def member_suggestions():
                 if len(rest) >= 2 and rest not in got and NORM(rest) not in EXCLUDE:
                     got.append(rest)
             time.sleep(0.25)
-        out[m] = got[:3]
-    return out
+        out[m] = got
+    # 모든 멤버에 공통으로 뜨는 검색어(예: 직캠)는 정보가 없어서 빼고 멤버별 특징만 3개
+    from collections import Counter
+    common = {q for q, n in Counter(q for v in out.values() for q in v).items() if n >= 4}
+    return {m: [q for q in v if q not in common][:3] for m, v in out.items()}, sorted(common)
 
 
 def combo_ranking():
@@ -339,7 +342,10 @@ def build_messages(ko_cur, ko_top, hist, questions, videos, members, combos):
     secs.append(s1)
 
     # 2) 멤버별
+    members, common = members
     s2 = [LINE, "👤 멤버별 많이 찾는 검색어", LINE]
+    if common:
+        s2.append(f"(모든 멤버 공통: {' · '.join(common[:3])})")
     for m, qs in members.items():
         s2.append(f"[{m}] " + (" · ".join(qs) if qs else "-"))
     secs.append(s2)
