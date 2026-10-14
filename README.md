@@ -1,23 +1,19 @@
 # 보넥도 트렌드 봇
 
-매일 아침 8시, 보이넥스트도어(보넥도) 관련해서 **같이 언급된 2단어 조합 TOP 10 + 단어 TOP 5**을 보내줘요. 완전 무료예요.
+"요즘 사람들이 보넥도에 대해 뭘 궁금해하나"를 매일 아침 8시에 보내줘요. 유튜브만 쓰고, 완전 무료예요.
 
-| 구분 | 출처 | 기간 |
-|---|---|---|
-| 🇰🇷 한국 | 네이버 블로그 + 유튜브(한글 제목·설명·댓글) | 전일 / 최근 7일 |
-| 🔎 검색량 | 네이버 데이터랩 검색어 트렌드 | 전일·최근 7일, 직전 기간 대비 % |
-| 🌏 영어 | 유튜브(영어 제목·설명·댓글) + Bluesky | 전일 / 최근 7일 |
+1. 🔎 **유튜브 검색어**: "보넥도 ㄱ~ㅎ", "boynextdoor a~z" 자동완성에 뜨는 실제 검색어
+   - 많이 찾는 검색어 / 어제 대비 새로 뜬 검색어 / 이번 주 새로 뜬 검색어 (매일 기록해서 비교)
+2. ❓ **팬들이 궁금해하는 질문**: 최근 7일 인기 영상 20개의 질문 댓글을 좋아요 순으로 (전일 / 최근 7일)
+3. 🔥 **뜨는 영상**: 최근 7일 영상 중 하루 평균 조회수 TOP 3
 
-- 숫자 = 그 단어가 함께 나온 글 수
-- 🔥 = 평소(이전 13일)보다 전일에 2배 이상 급증한 키워드 (최대 3개)
+한국(한글) / 영어 따로 보여줘요.
 
-## GitHub Secrets
-
-- `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` — NAVER API HUB Application에서 **블로그·검색어트렌드** 사용 설정 필요
-- `YOUTUBE_API_KEY` — Google Cloud 콘솔에서 YouTube Data API v3 사용 설정 후 API 키 (무료)
-- `BOT_TOKEN`, `CHAT_ID` — 텔레그램
+## Secrets
+- `YOUTUBE_API_KEY` (Google Cloud → YouTube Data API v3, 무료)
+- `BOT_TOKEN`, `CHAT_ID`
 
 ## 설정 (`config.json`)
-
-- `ko_queries` / `en_queries`: 검색할 이름
-- `self_words`, `ko_stopwords`, `en_stopwords`: 순위에서 뺄 단어 (의미 없는 단어가 자꾸 올라오면 여기에 추가)
+- `ko_suggest_seeds` / `en_suggest_seeds`: 자동완성에 넣을 이름
+- `exclude_artists`: 검색어에서 뺄 이름 (다른 가수·음방·소속사·멤버 이름만 단독으로 나올 때)
+- `questions_n`: 질문 몇 개씩 보여줄지
