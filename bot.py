@@ -269,8 +269,11 @@ def is_english(t):
 
 
 def section_videos(videos, korean, n):
+    def lang_ko(t):  # 해시태그는 빼고 본문 제목으로 언어 판단
+        body = re.sub(r"#\S+", "", t)
+        return bool(HANGUL.search(body)) if body.strip() else bool(HANGUL.search(t))
     pick = [v for v in videos if TITLE_OK.search(v["title"])
-            and (HANGUL.search(v["title"]) if korean else is_english(v["title"]))]
+            and (lang_ko(v["title"]) if korean else (not lang_ko(v["title"]) and is_english(re.sub(r"#\S+", "", v["title"]) or v["title"])))]
     pick = sorted(pick, key=lambda v: -v["per_day"])[:n]
     if not pick:
         return "   (없음)"
