@@ -37,6 +37,14 @@ DOW = "월화수목금토일"
 UA = {"User-Agent": "Mozilla/5.0 (bnd-trend-bot; personal telegram bot)"}
 
 SELF = {w.lower() for w in CFG["self_words"]}
+NORM = lambda w: re.sub(r"[\s\-_.·()&']", "", w.lower())
+ARTISTS = {NORM(w) for w in CFG.get("exclude_artists", [])} - {NORM(m) for m in CFG.get("members", [])}
+
+
+def is_excluded(term):
+    """다른 가수·그룹 이름, 음악방송·시상식 이름이면 제외"""
+    n = NORM(term)
+    return n in ARTISTS or any(len(a) >= 4 and a in n for a in ARTISTS)
 KO_STOP = set(CFG["ko_stopwords"]) | SELF
 EN_STOP = set(CFG["en_stopwords"]) | SELF
 errors = []
@@ -142,7 +150,7 @@ def ko_terms(text):
             w = JOSA.sub("", w)
             if len(w) >= 2:
                 terms.add(w.lower())
-    return {t for t in terms if t not in KO_STOP and not t.isdigit()}
+    return {t for t in terms if t not in KO_STOP and not t.isdigit() and not is_excluded(t)}
 
 
 # ───────── 영어: 구글 뉴스 + Reddit ─────────
@@ -198,7 +206,13 @@ def collect_english():
 def en_terms(text):
     text = ALIAS_RE.sub(" ", text)
     words = re.findall(r"[a-z][a-z0-9'\-]{1,}", text.lower())
-    return {w.strip("'-") for w in words if w.strip("'-") not in EN_STOP and len(w.strip("'-")) >= 3}
+    text_n = text.lower()
+    for a in CFG.get("exclude_artists", []):  # 여러 단어로 된 이름(stray kids, music bank 등) 먼저 제거
+        if " " in a:
+            text_n = text_n.replace(a.lower(), " ")
+    words = re.findall(r"[a-z][a-z0-9'\-]{1,}", text_n)
+    return {w.strip("'-") for w in words
+            if w.strip("'-") not in EN_STOP and len(w.strip("'-")) >= 3 and not is_excluded(w.strip("'-"))}
 
 
 # ───────── 집계 ─────────
