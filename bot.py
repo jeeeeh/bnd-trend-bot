@@ -227,7 +227,7 @@ def new_since(cur, hist, lang, days_from, days_to):
     return sorted((q for q in cur if q not in old), key=lambda q: -cur[q])
 
 
-# ───────── 메시지 (카카오톡에 그대로 복사하기 좋게: 서식 없는 텍스트, 링크는 맨 아래) ─────────
+# ───────── 메시지 (카카오톡에 그대로 복사하기 좋게: 서식 없는 텍스트, 항목마다 링크) ─────────
 LINE = "━━━━━━━━━━━━━━"
 CIRCLE = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
 
@@ -282,9 +282,10 @@ def build_message(ko_cur, ko_top, hist, questions, videos):
     hot = [v for v in videos if TITLE_OK.search(v["title"]) and korean_title(v["title"])]
     hot = sorted(hot, key=lambda v: -v["per_day"])[:3]
     out += ["", LINE, "🔥 요즘 뜨는 영상 (최근 7일)", LINE]
-    for v in hot:
-        out.append(f"{ref(v['id'])} {short(v['title'], 40)}")
+    for i, v in enumerate(hot):
+        out.append(f"{CIRCLE[i]} {short(v['title'], 40)}")
         out.append(f"    └ 하루 평균 {fmt_views(v['per_day'])}회")
+        out.append(f"    https://youtu.be/{v['id']}")
     if not hot:
         out.append("(없음)")
 
@@ -298,15 +299,13 @@ def build_message(ko_cur, ko_top, hist, questions, videos):
         out.append(title)
         for d, likes, text, vt, vid in group:
             out.append(f"· \"{short(text, 60)}\"")
-            out.append(f"    └ 👍{likes:,} · 영상 {ref(vid)}")
+            out.append(f"    └ 👍{likes:,}")
+            out.append(f"    https://youtu.be/{vid}")
         if not group:
             out.append("· 없음")
         out.append("")
 
-    # 링크 모음
-    out += [LINE, "🔗 영상 링크", LINE]
-    out += [f"{mark} https://youtu.be/{vid}" for mark, vid in links]
-    return "\n".join(out)
+    return "\n".join(out).rstrip()
 
 
 def send(text):
