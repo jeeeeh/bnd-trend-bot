@@ -227,40 +227,13 @@ def new_since(cur, hist, lang, days_from, days_to):
     return sorted((q for q in cur if q not in old), key=lambda q: -cur[q])
 
 
-# ───────── 메시지 ─────────
-def q_list(items, n):
-    return " · ".join(esc(x) for x in items[:n]) if items else "없음"
+# ───────── 메시지 (카카오톡에 그대로 복사하기 좋게: 서식 없는 텍스트, 링크는 맨 아래) ─────────
+LINE = "━━━━━━━━━━━━━━"
+CIRCLE = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳"
 
 
-def section_search(flag, cur, top, hist, lang):
-    day_new = new_since(cur, hist, lang, 1, 1)
-    week_new = new_since(cur, hist, lang, 2, 7)
-    lines = [f"{flag} 많이 찾는: {q_list(top, 8)}"]
-    if day_new is None:
-        lines.append("   🆕 새 검색어: 내일부터 비교돼요 (오늘 첫 기록)")
-    else:
-        lines.append(f"   🆕 어제 대비 새로: {q_list(day_new, 8)}")
-        if week_new is not None:
-            lines.append(f"   🆕 이번 주 새로: {q_list(week_new, 8)}")
-    return "\n".join(lines)
-
-
-def section_questions(flag, rows, n):
-    day = sorted((r for r in rows if r[0] == YDAY), key=lambda r: -r[1])[:n]
-    shown = {r[2] for r in day}
-    week = sorted((r for r in rows if r[2] not in shown), key=lambda r: -r[1])[:n]
-    out = []
-    for title, group in (("전일", day), ("최근 7일", week)):
-        out.append(f"{flag} <b>{title}</b>")
-        if not group:
-            out.append("   (없음)")
-        for d, likes, text, vt, vid in group:
-            out.append(f"   • {esc(short(text, 70))} <i>👍{likes}</i> "
-                       f"<a href=\"https://youtu.be/{vid}\">영상</a>")
-    return "\n".join(out)
-
-
-TITLE_OK = re.compile("|".join(re.escape(w) for w in CFG["title_words"]), re.I)
+def fmt_views(x):
+    return f"{x / 10000:.1f}만" if x >= 10000 else f"{x:,.0f}"
 
 
 def is_english(t):
@@ -268,48 +241,78 @@ def is_english(t):
     return letters and sum(c.isascii() for c in letters) / len(letters) > 0.8
 
 
-def section_videos(videos, korean, n):
-    def lang_ko(t):  # 해시태그는 빼고 본문 제목으로 언어 판단
-        body = re.sub(r"#\S+", "", t)
-        return bool(HANGUL.search(body)) if body.strip() else bool(HANGUL.search(t))
-    pick = [v for v in videos if TITLE_OK.search(v["title"])
-            and (lang_ko(v["title"]) if korean else (not lang_ko(v["title"]) and is_english(re.sub(r"#\S+", "", v["title"]) or v["title"])))]
-    pick = sorted(pick, key=lambda v: -v["per_day"])[:n]
-    if not pick:
-        return "   (없음)"
-    fmt = lambda x: f"{x / 10000:.1f}만" if x >= 10000 else f"{x:,.0f}"
-    return "\n".join(f"   • <a href=\"https://youtu.be/{v['id']}\">{esc(short(v['title'], 45))}</a> "
-                     f"<i>하루 {fmt(v['per_day'])}회</i>" for v in pick)
+TITLE_OK = re.compile("|".join(re.escape(w) for w in CFG["title_words"]), re.I)
 
 
-def build_messages(ko_s, en_s, hist, qs, videos):
-    ko_cur, ko_top = ko_s
-    en_cur, en_top = en_s
-    m1 = "\n".join([
-        f"🎧 <b>보넥도, 요즘 사람들은 뭘 궁금해할까?</b> · {YDAY.month}/{YDAY.day}({DOW[YDAY.weekday()]}) 기준",
-        "",
-        "🔎 <b>유튜브 검색어</b> (자동완성 기준)",
-        section_search("🇰🇷", ko_cur, ko_top, hist, "ko"),
-        section_search("🌏", en_cur, en_top, hist, "en"),
-        "",
-        "🔥 <b>뜨는 영상</b> (최근 7일, 하루 평균 조회수)",
-        "🇰🇷", section_videos(videos, True, 3),
-        "🌏", section_videos(videos, False, 3),
-    ])
-    m2 = "\n".join([
-        "❓ <b>팬들이 궁금해하는 질문</b> (유튜브 댓글, 👍=좋아요+답글)",
-        "",
-        section_questions("🇰🇷", qs[0], CFG["questions_n"]),
-        "",
-        section_questions("🌏", qs[1], CFG["questions_n"]),
-    ])
-    return [m1, m2]
+def korean_title(t):
+    body = re.sub(r"#\S+", "", t)
+    return bool(HANGUL.search(body)) if body.strip() else bool(HANGUL.search(t))
+
+
+def build_message(ko_cur, ko_top, hist, questions, videos):
+    links = []  # [(번호기호, 영상id)]
+
+    def ref(vid):
+        for mark, v in links:
+            if v == vid:
+                return mark
+        mark = CIRCLE[len(links)] if len(links) < len(CIRCLE) else f"({len(links) + 1})"
+        links.append((mark, vid))
+        return mark
+
+    out = [f"🎧 보넥도, 요즘 사람들은 뭘 궁금해할까?",
+           f"📅 {YDAY.month}/{YDAY.day}({DOW[YDAY.weekday()]}) 기준 · 유튜브", ""]
+
+    # 1) 검색어
+    out += [LINE, "🔎 유튜브에서 많이 찾는 검색어", LINE]
+    out += [f"{i + 1}. {q}" for i, q in enumerate(ko_top[:8])] or ["(없음)"]
+    day_new = new_since(ko_cur, hist, "ko", 1, 1)
+    week_new = new_since(ko_cur, hist, "ko", 2, 7)
+    out.append("")
+    if day_new is None:
+        out.append("🆕 새로 뜬 검색어는 내일부터 비교돼요")
+    else:
+        out.append("🆕 어제보다 새로 뜬 검색어")
+        out += [f"· {q}" for q in day_new[:6]] or ["· 없음"]
+        if week_new is not None:
+            out += ["", "🆕 이번 주 새로 뜬 검색어"]
+            out += [f"· {q}" for q in week_new[:6]] or ["· 없음"]
+
+    # 2) 뜨는 영상
+    hot = [v for v in videos if TITLE_OK.search(v["title"]) and korean_title(v["title"])]
+    hot = sorted(hot, key=lambda v: -v["per_day"])[:3]
+    out += ["", LINE, "🔥 요즘 뜨는 영상 (최근 7일)", LINE]
+    for v in hot:
+        out.append(f"{ref(v['id'])} {short(v['title'], 40)}")
+        out.append(f"    └ 하루 평균 {fmt_views(v['per_day'])}회")
+    if not hot:
+        out.append("(없음)")
+
+    # 3) 질문
+    n = CFG["questions_n"]
+    day = sorted((r for r in questions if r[0] == YDAY), key=lambda r: -r[1])[:n]
+    shown = {r[2] for r in day}
+    week = sorted((r for r in questions if r[2] not in shown), key=lambda r: -r[1])[:n]
+    out += ["", LINE, "❓ 팬들이 궁금해하는 질문", LINE]
+    for title, group in (("[어제]", day), ("[최근 7일]", week)):
+        out.append(title)
+        for d, likes, text, vt, vid in group:
+            out.append(f"· \"{short(text, 60)}\"")
+            out.append(f"    └ 👍{likes:,} · 영상 {ref(vid)}")
+        if not group:
+            out.append("· 없음")
+        out.append("")
+
+    # 링크 모음
+    out += [LINE, "🔗 영상 링크", LINE]
+    out += [f"{mark} https://youtu.be/{vid}" for mark, vid in links]
+    return "\n".join(out)
 
 
 def send(text):
     for cid in CHAT_IDS:
         r = requests.post(f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage", timeout=30,
-                          json={"chat_id": cid, "text": text, "parse_mode": "HTML", "disable_web_page_preview": True})
+                          json={"chat_id": cid, "text": text, "disable_web_page_preview": True})
         if not r.ok:
             print(f"텔레그램 전송 실패({cid}): {r.text}", file=sys.stderr)
 
@@ -317,21 +320,19 @@ def send(text):
 def main():
     if not YT_KEY:
         sys.exit("YOUTUBE_API_KEY가 없어요.")
-    ko_s = collect_suggestions(CFG["ko_suggest_seeds"], KO_PREFIX, "ko")
-    en_s = collect_suggestions(CFG["en_suggest_seeds"], EN_PREFIX, "en")
-    print(f"자동완성 검색어: 한국 {len(ko_s[0])} / 영어 {len(en_s[0])}")
+    ko_cur, ko_top = collect_suggestions(CFG["ko_suggest_seeds"], KO_PREFIX, "ko")
+    print(f"자동완성 검색어: {len(ko_cur)}")
     videos = collect_videos()
-    qs = collect_questions(videos)
+    ko_q, _ = collect_questions(videos)
     hist = load_hist()
-    msgs = build_messages(ko_s, en_s, hist, qs, videos)
-    print("\n\n".join(msgs))
+    text = build_message(ko_cur, ko_top, hist, ko_q, videos)
+    print(text)
     for e in errors[:15]:
         print("!", e)
-    hist[str(TODAY)] = {"ko": ko_s[0], "en": en_s[0]}
+    hist[str(TODAY)] = {"ko": ko_cur}
     save_hist(hist)
     if BOT_TOKEN and CHAT_IDS and os.environ.get("DRY_RUN") != "true":
-        for m in msgs:
-            send(m)
+        send(text)
 
 
 if __name__ == "__main__":
