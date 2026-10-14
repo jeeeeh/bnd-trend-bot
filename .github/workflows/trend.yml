@@ -1,0 +1,45 @@
+name: bnd-trend
+
+on:
+  schedule:
+    - cron: "47 22 * * *"   # 매일 07:47 KST 시작 → 8시 전후 도착 (정각 대기열 회피)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "미리보기만 (텔레그램 발송 안 함)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests kiwipiepy
+      - name: 트렌드 집계 & 발송
+        shell: bash
+        env:
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          mkdir -p data
+          set -o pipefail
+          python -u bot.py 2>&1 | tee data/last_run.log
+      - name: 실행 기록 저장
+        if: always()
+        run: |
+          git config user.name "bnd-trend-bot"
+          git config user.email "bnd-trend-bot@users.noreply.github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "run log"
+          git push
