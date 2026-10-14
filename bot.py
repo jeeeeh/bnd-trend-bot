@@ -113,7 +113,8 @@ def member_suggestions():
                 continue
             for it in items:
                 rest = remainder(it, strip)
-                if len(rest) >= 2 and rest not in got and NORM(rest) not in EXCLUDE:
+                if (len(rest) >= 2 and rest not in got and NORM(rest) not in EXCLUDE
+                        and not any(w in rest for w in CFG["member_block_words"])):
                     got.append(rest)
             time.sleep(0.25)
         out[m] = got
@@ -180,10 +181,18 @@ def to_date(s):
     return datetime.fromisoformat(s.replace("Z", "+00:00")).astimezone(KST)
 
 
+VIDEO_CACHE = ROOT / "data" / "videos.json"
+
+
 def collect_videos():
+    """최근 7일 영상. REUSE_VIDEOS=true면 검색(한도 많이 씀) 없이 저장된 영상 목록만 다시 조회"""
     after = datetime.combine(WEEK_START, datetime.min.time(), KST).isoformat()
     vids = {}
-    for q in CFG["yt_queries"]:
+    reuse = os.environ.get("REUSE_VIDEOS") == "true" and VIDEO_CACHE.exists()
+    if reuse:
+        for v in json.loads(VIDEO_CACHE.read_text(encoding="utf-8")):
+            vids[v] = {"id": v}
+    for q in ([] if reuse else CFG["yt_queries"]):
         token = None
         for _ in range(3):
             try:
@@ -199,21 +208,24 @@ def collect_videos():
                 v = it["id"].get("videoId")
                 if v and v not in vids:
                     sn = it["snippet"]
-                    vids[v] = {"id": v, "title": html.unescape(sn["title"]), "channel": sn["channelTitle"],
-                               "at": to_date(sn["publishedAt"])}
+                    vids[v] = {"id": v}
             token = j.get("nextPageToken")
             if not token:
                 break
     ids = list(vids)
     for i in range(0, len(ids), 50):
         try:
-            j = yt("videos", part="statistics", id=",".join(ids[i:i + 50]))
+            j = yt("videos", part="snippet,statistics", id=",".join(ids[i:i + 50]))
             for it in j.get("items", []):
-                st = it.get("statistics", {})
-                vids[it["id"]]["views"] = int(st.get("viewCount", 0))
-                vids[it["id"]]["comments"] = int(st.get("commentCount", 0))
+                st, sn = it.get("statistics", {}), it["snippet"]
+                vids[it["id"]].update({
+                    "title": sn["title"], "desc": sn.get("description", ""), "at": to_date(sn["publishedAt"]),
+                    "views": int(st.get("viewCount", 0)), "comments": int(st.get("commentCount", 0))})
         except Exception as e:
             errors.append(f"조회수: {e}")
+    vids = {k: v for k, v in vids.items() if "at" in v}
+    VIDEO_CACHE.parent.mkdir(exist_ok=True)
+    VIDEO_CACHE.write_text(json.dumps(list(vids)), encoding="utf-8")
     for v in vids.values():
         hours = max((NOW - v["at"]).total_seconds() / 3600, 6)
         v["per_day"] = v.get("views", 0) / hours * 24
@@ -241,9 +253,9 @@ EN_FILLER = {"what", "who", "how", "why", "when", "where", "is", "the", "and", "
 SPAM = re.compile(r"https?://|www\.|구독|sub4sub|check out my|my channel", re.I)
 
 
-def collect_questions(videos):
-    """(한국 질문, 영어 질문): [(날짜, 좋아요, 텍스트, 영상제목, 영상id)]"""
-    ko, en, seen = [], [], set()
+def collect_comments(videos):
+    """최근 7일 인기 영상 댓글 (한글): [(날짜, 좋아요+답글, 텍스트, 영상제목, 영상id)]"""
+    rows, seen = [], set()
     targets = sorted([v for v in videos if v.get("comments", 0) > 0], key=lambda v: -v.get("views", 0))
     targets = targets[: CFG["yt_question_videos"]]
     for v in targets:
@@ -251,25 +263,52 @@ def collect_questions(videos):
             try:
                 j = yt("commentThreads", part="snippet", videoId=v["id"], order=order,
                        maxResults=100, textFormat="plainText")
-            except Exception:
-                break  # 댓글 막힌 영상
+            except Exception as e:
+                errors.append(f"댓글({v['id']}): {str(e)[:60]}")
+                break
             for it in j.get("items", []):
                 c = it["snippet"]["topLevelComment"]["snippet"]
                 text = re.sub(r"\s+", " ", c.get("textDisplay", "")).strip()
                 key = NORM(text)[:60]
-                if key in seen or len(text) < 8 or len(text) > 300 or SPAM.search(text):
+                if key in seen or len(text) < 6 or len(text) > 300 or SPAM.search(text) or not HANGUL.search(text):
                     continue
                 d = to_date(c["publishedAt"]).date()
                 if d < WEEK_START or d > YDAY:
                     continue
-                row = (d, int(c.get("likeCount", 0)) + int(it["snippet"].get("totalReplyCount", 0)), text, v["title"], v["id"])
-                if HANGUL.search(text):
-                    if is_ko_question(text):
-                        ko.append(row); seen.add(key)
-                elif re.search(r"[A-Za-z]{3}", text) and EN_Q.search(text):
-                    en.append(row); seen.add(key)
-    print(f"질문 댓글: 한국 {len(ko)} / 영어 {len(en)} (영상 {len(targets)}개)")
-    return ko, en
+                seen.add(key)
+                rows.append((d, int(c.get("likeCount", 0)) + int(it["snippet"].get("totalReplyCount", 0)),
+                             text, v["title"], v["id"]))
+    print(f"한국어 댓글 {len(rows)}개 (영상 {len(targets)}개)")
+    return rows
+
+
+def combo_ranking_yt(videos, comments):
+    """조합명 유튜브 기준: 최근 7일 영상 제목·설명·댓글 언급 수 + 유튜브 자동완성에 뜨는 개수"""
+    amb = set(CFG["combo_ambiguous"])
+    texts = [v["title"] + " " + v.get("desc", "") for v in videos] + [c[2] for c in comments]
+    yday_texts = [c[2] for c in comments if c[0] == YDAY] + \
+                 [v["title"] for v in videos if v["at"].date() == YDAY]
+    res = []
+    for names, members in CFG["combos"]:
+        aliases = names.split("|")
+        pats = [re.compile(re.escape(n), re.I) for n in aliases if n not in amb or len(n) >= 4]
+        mention = sum(1 for t in texts if any(p.search(t) for p in pats)) if pats else 0
+        y = sum(1 for t in yday_texts if any(p.search(t) for p in pats)) if pats else 0
+        ac = 0
+        for n in aliases[:2]:
+            q = f"보넥도 {n}" if n in amb else n
+            try:
+                ac += sum(1 for x in suggest(q + " ", "ko") if NORM(n) in NORM(x))
+            except Exception:
+                pass
+            time.sleep(0.2)
+        score = mention * 3 + ac
+        if score > 0:
+            res.append({"name": aliases[0], "members": members, "mention": mention, "ac": ac,
+                        "score": score, "rising": y >= 2 and y * 7 >= mention * 2})
+    res.sort(key=lambda x: (-x["score"], -x["mention"]))
+    print(f"조합명 유튜브 점수 있는 것: {len(res)}개")
+    return res
 
 
 # ───────── 기록 (자동완성 스냅샷) ─────────
@@ -351,13 +390,13 @@ def build_messages(ko_cur, ko_top, hist, questions, videos, members, combos):
     secs.append(s2)
 
     # 3) 조합명
-    s3 = [LINE, "💞 많이 검색된 조합명 (네이버, 최근 7일)", LINE]
+    s3 = [LINE, "💞 요즘 많이 언급되는 조합명 (유튜브, 최근 7일)", LINE]
     for i, c in enumerate(combos[:N]):
         s3.append(f"{i + 1}. {c['name']} ({c['members']}){' 🔺' if c['rising'] else ''}")
     if not combos:
-        s3.append("(검색량 데이터 없음)")
+        s3.append("(데이터 없음)")
     else:
-        s3.append("🔺 = 어제 검색이 평소보다 많음")
+        s3.append("유튜브 영상·댓글 언급 + 검색 자동완성 기준 · 🔺 어제 급증")
     secs.append(s3)
 
     # 4) 뜨는 영상
@@ -375,7 +414,7 @@ def build_messages(ko_cur, ko_top, hist, questions, videos, members, combos):
     day = sorted((r for r in questions if r[0] == YDAY), key=lambda r: -r[1])[:N]
     shown = {r[2] for r in day}
     week = sorted((r for r in questions if r[2] not in shown), key=lambda r: -r[1])[:N]
-    s5 = [LINE, "❓ 팬들이 궁금해하는 질문", LINE]
+    s5 = [LINE, "💬 요즘 핫한 댓글 (좋아요+답글 순)", LINE]
     for title, group in (("[어제]", day), ("[최근 7일]", week)):
         s5.append(title)
         for d, likes, text, vt, vid in group:
@@ -424,9 +463,9 @@ def main():
     ko_cur, ko_top = collect_suggestions(CFG["ko_suggest_seeds"], KO_PREFIX, "ko")
     print(f"자동완성 검색어: {len(ko_cur)}")
     videos = collect_videos()
-    ko_q, _ = collect_questions(videos)
+    ko_q = collect_comments(videos)
     members = member_suggestions()
-    combos = combo_ranking()
+    combos = combo_ranking_yt(videos, ko_q)
     hist = load_hist()
     msgs = build_messages(ko_cur, ko_top, hist, ko_q, videos, members, combos)
     print("\n\n====\n\n".join(msgs))

@@ -9,6 +9,10 @@ on:
         description: "미리보기만 (텔레그램 발송 안 함)"
         type: boolean
         default: false
+      reuse_videos:
+        description: "지난번 영상 목록 재사용 (유튜브 검색 한도 아끼기)"
+        type: boolean
+        default: false
       send_saved:
         description: "저장된 메시지 그대로 보내기 (유튜브 호출 안 함)"
         type: boolean
@@ -37,6 +41,7 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           DRY_RUN: ${{ inputs.dry_run }}
           SEND_SAVED: ${{ inputs.send_saved }}
+          REUSE_VIDEOS: ${{ inputs.reuse_videos }}
         run: |
           mkdir -p data
           set -o pipefail
