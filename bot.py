@@ -406,7 +406,19 @@ def send(text):
             print(f"텔레그램 전송 실패({cid}): {r.text}", file=sys.stderr)
 
 
+def send_saved():
+    """유튜브 호출 없이 data/saved_message_*.txt 를 그대로 보냄 (한도 초과 시 테스트용)"""
+    files = sorted((ROOT / "data").glob("saved_message_*.txt"))
+    if not files:
+        sys.exit("저장된 메시지가 없어요.")
+    for f in files:
+        send(f.read_text(encoding="utf-8"))
+    print(f"저장된 메시지 {len(files)}개 전송")
+
+
 def main():
+    if os.environ.get("SEND_SAVED") == "true":
+        return send_saved()
     if not YT_KEY:
         sys.exit("YOUTUBE_API_KEY가 없어요.")
     ko_cur, ko_top = collect_suggestions(CFG["ko_suggest_seeds"], KO_PREFIX, "ko")

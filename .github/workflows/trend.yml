@@ -9,6 +9,10 @@ on:
         description: "미리보기만 (텔레그램 발송 안 함)"
         type: boolean
         default: false
+      send_saved:
+        description: "저장된 메시지 그대로 보내기 (유튜브 호출 안 함)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -32,6 +36,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           DRY_RUN: ${{ inputs.dry_run }}
+          SEND_SAVED: ${{ inputs.send_saved }}
         run: |
           mkdir -p data
           set -o pipefail
