@@ -371,9 +371,13 @@ def section(flag, title, r, key, n):
     pairs, words = r[f"{key}_pairs"], r[f"{key}_words"]
     in_pairs = {w for t, _, _ in pairs for w in t.split()}
     words = [x for x in words if x[0] not in in_pairs]  # 조합에 이미 나온 단어는 생략
-    out = [f"{flag} <b>{title}</b> (글·영상·댓글 {n}건)", fmt_list(pairs)]
-    if words:
-        out.append(words_line(words[: CFG["top_words"]]))
+    out = [f"{flag} <b>{title}</b> (글·영상·댓글 {n}건)"]
+    if len(pairs) >= 3:
+        out.append(fmt_list(pairs))
+        if words:
+            out.append(words_line(words[: CFG["top_words"]]))
+    else:  # 조합이 거의 없으면(짧은 영어 댓글 등) 단어 TOP 10으로 대신
+        out.append(fmt_list(r[f"{key}_words"][: CFG["top_n"]]))
     return "\n".join(out)
 
 
