@@ -139,18 +139,38 @@ ALIAS_RE = re.compile("|".join(re.escape(a) for a in ALIASES), re.I)
 
 
 def ko_terms(text):
-    text = ALIAS_RE.sub(" ", text)  # 그룹 이름 자체는 키워드에서 제외
-    terms = set()
+    """(단어 집합, 2단어 조합 집합). 조합 = 문장 안에서 바로 이어지는 명사 두 개 (조사 사이에 껴도 OK)"""
+    text = ALIAS_RE.sub(" | ", text)  # 그룹 이름 자리는 끊어서 조합이 넘어가지 않게
+    ok = lambda t: len(t) >= 2 and t not in KO_STOP and not t.isdigit() and not is_excluded(t)
+    words, pairs = set(), set()
     if KIWI:
+        prev, gap = None, 0
         for t in KIWI.tokenize(text):
-            if t.tag in ("NNP", "NNG", "SL", "SH") and len(t.form) >= 2:
-                terms.add(t.form.lower() if t.tag == "SL" else t.form)
+            if t.tag in ("NNP", "NNG", "SL", "SH"):
+                w = t.form.lower() if t.tag == "SL" else t.form
+                if ok(w):
+                    words.add(w)
+                    if prev and gap <= 1 and prev != w:
+                        pairs.add(f"{prev} {w}")
+                    prev, gap = w, 0
+                else:
+                    prev = None
+            elif t.tag.startswith("J") or t.tag in ("XSN",):
+                gap += 1   # 조사는 건너뜀 (예: 일본의 투어 → 일본 투어)
+            else:
+                prev = None
     else:
-        for w in re.findall(r"[가-힣A-Za-z0-9]{2,}", text):
-            w = JOSA.sub("", w)
-            if len(w) >= 2:
-                terms.add(w.lower())
-    return {t for t in terms if t not in KO_STOP and not t.isdigit() and not is_excluded(t)}
+        prev = None
+        for raw in re.findall(r"[가-힣A-Za-z0-9]+|[^\s가-힣A-Za-z0-9]", text):
+            w = JOSA.sub("", raw).lower()
+            if ok(w):
+                words.add(w)
+                if prev and prev != w:
+                    pairs.add(f"{prev} {w}")
+                prev = w
+            else:
+                prev = None
+    return words, pairs
 
 
 # ───────── 영어: 구글 뉴스 + Reddit ─────────
@@ -204,41 +224,61 @@ def collect_english():
 
 
 def en_terms(text):
-    text = ALIAS_RE.sub(" ", text)
-    words = re.findall(r"[a-z][a-z0-9'\-]{1,}", text.lower())
-    text_n = text.lower()
+    text = ALIAS_RE.sub(" | ", text).lower()
     for a in CFG.get("exclude_artists", []):  # 여러 단어로 된 이름(stray kids, music bank 등) 먼저 제거
         if " " in a:
-            text_n = text_n.replace(a.lower(), " ")
-    words = re.findall(r"[a-z][a-z0-9'\-]{1,}", text_n)
-    return {w.strip("'-") for w in words
-            if w.strip("'-") not in EN_STOP and len(w.strip("'-")) >= 3 and not is_excluded(w.strip("'-"))}
+            text = text.replace(a.lower(), " | ")
+    ok = lambda w: len(w) >= 3 and w not in EN_STOP and not is_excluded(w)
+    words, pairs, prev = set(), set(), None
+    for raw in re.findall(r"[a-z][a-z0-9'\-]*|[^\sa-z]", text):
+        w = raw.strip("'-")
+        if ok(w):
+            words.add(w)
+            if prev and prev != w:
+                pairs.add(f"{prev} {w}")
+            prev = w
+        else:
+            prev = None
+    return words, pairs
 
 
 # ───────── 집계 ─────────
 def rank(docs, terms_fn):
-    """전일 / 최근 7일 키워드 문서빈도 TOP N, 전일에 평소보다 급증한 키워드는 🔥"""
-    day, week, prev = Counter(), Counter(), Counter()
+    """전일 / 최근 7일: 2단어 조합 TOP N + 단어 TOP M. 🔥 = 전일에 평소보다 급증"""
+    C = lambda: {"w": Counter(), "p": Counter()}
+    day, week, prev = C(), C(), C()
     nd = nw = npv = 0
     for d, text in docs:
-        ts = terms_fn(text)
+        ws, ps = terms_fn(text)
+        bucket = []
         if d == YDAY:
-            day.update(ts); nd += 1
+            bucket.append(day); nd += 1
         if WEEK_START <= d <= YDAY:
-            week.update(ts); nw += 1
+            bucket.append(week); nw += 1
         else:
-            prev.update(ts); npv += 1
-    def surge(t, c):
-        base = (week[t] - day[t] + prev[t] + 1) / max(nw - nd + npv, 1)  # 전일을 뺀 13일 평균 비율
-        return (c / max(nd, 1)) / base
-    top = CFG["top_n"]
-    min_c = 2
-    cand = [(t, c) for t, c in day.most_common(top * 3) if c >= min_c][:top]
-    ranked = sorted((x for x in cand if x[1] >= 5 and surge(*x) >= CFG["hot_ratio"]), key=lambda x: -surge(*x))
-    hot = {t for t, _ in ranked[: CFG["hot_max"]]}
-    day_top = [(t, c, t in hot) for t, c in cand]
-    week_top = [(t, c, False) for t, c in week.most_common(top * 3) if c >= min_c][:top]
-    return day_top, week_top, nd, nw
+            bucket.append(prev); npv += 1
+        for b in bucket:
+            b["w"].update(ws); b["p"].update(ps)
+
+    def top_of(cnt, n, with_hot, kind):
+        cand = [(t, c) for t, c in cnt.most_common(n * 4) if c >= 2]
+        # 조합에 이미 들어간 단어는 단어 목록에서 생략해 중복을 줄임
+        cand = cand[:n]
+        if not with_hot:
+            return [(t, c, False) for t, c in cand]
+        def surge(t, c):
+            base = (week[kind][t] - day[kind][t] + prev[kind][t] + 1) / max(nw - nd + npv, 1)
+            return (c / max(nd, 1)) / base
+        hot = sorted((x for x in cand if x[1] >= 4 and surge(*x) >= CFG["hot_ratio"]), key=lambda x: -surge(*x))
+        hot = {t for t, _ in hot[: CFG["hot_max"]]}
+        return [(t, c, t in hot) for t, c in cand]
+
+    n, m = CFG["top_n"], CFG["top_words"]
+    return {
+        "day_pairs": top_of(day["p"], n, True, "p"), "day_words": top_of(day["w"], m, True, "w"),
+        "week_pairs": top_of(week["p"], n, False, "p"), "week_words": top_of(week["w"], m, False, "w"),
+        "nd": nd, "nw": nw,
+    }
 
 
 def fmt_list(items):
@@ -254,23 +294,28 @@ def pct_text(p):
     return f"{arrow}{abs(p):.0f}%"
 
 
+def words_line(items):
+    return "   단어: " + " · ".join(f"{html.escape(t)}{'🔥' if h else ''}" for t, c, h in items) if items else ""
+
+
+def section(flag, title, r, key, n):
+    pairs, words = r[f"{key}_pairs"], r[f"{key}_words"]
+    out = [f"{flag} <b>{title}</b> (글 {n}건)", fmt_list(pairs)]
+    if words:
+        out.append(words_line(words))
+    return "\n".join(out)
+
+
 def build_message(ko, en, dl):
-    kd, kw, knd, knw = ko
-    ed, ew, end, enw = en
     lines = [f"🎧 <b>{CFG['name']} 트렌드</b> · {YDAY.month}/{YDAY.day}({DOW[YDAY.weekday()]}) 기준"]
     if dl:
         lines.append(f"🔎 네이버 검색량  전일 {pct_text(dl['day'])} · 최근 7일 {pct_text(dl['week'])} (직전 기간 대비)")
     lines += [
-        "",
-        f"🇰🇷 <b>한국 · 전일</b> (글 {knd}건)", fmt_list(kd),
-        "",
-        f"🇰🇷 <b>한국 · 최근 7일</b> (글 {knw}건)", fmt_list(kw),
-        "",
-        f"🌏 <b>영어 · 전일</b> (글 {end}건)", fmt_list(ed),
-        "",
-        f"🌏 <b>영어 · 최근 7일</b> (글 {enw}건)", fmt_list(ew),
-        "",
-        "<i>숫자 = 그 단어가 함께 나온 글 수 · 🔥 = 평소보다 2배↑</i>",
+        "", section("🇰🇷", "한국 · 전일", ko, "day", ko["nd"]),
+        "", section("🇰🇷", "한국 · 최근 7일", ko, "week", ko["nw"]),
+        "", section("🌏", "영어 · 전일", en, "day", en["nd"]),
+        "", section("🌏", "영어 · 최근 7일", en, "week", en["nw"]),
+        "", "<i>숫자 = 함께 나온 글 수 · 🔥 = 평소보다 2배↑</i>",
     ]
     return "\n".join(lines)
 
