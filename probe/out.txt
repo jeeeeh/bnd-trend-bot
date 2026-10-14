@@ -1,46 +1,6 @@
-JS files 23
-JS bfe/_next/static/chunks/15f_iik0_x1tt.js [ticketDates] d?(0,c.css)({flex:"0 1 auto"}):(0,c.css)({flexShrink:0})),o[0]=d,o[1]=p,o[2]=i):i=o[2],o[3]!==l||o[4]!==i||o[5]!==l?(a=(0,t.jsx)("span",{className:i,title:l,children:l}),o[3]=l,o[4]=i,o[5]=l,o[6]=a):a=o[6],a}e.s(["OpenDates",0,function(e){let s,m,v,h,f,b,x,E,_,k,P,j,C,S,T,N=(0,r.c)(43),{productId:R,ticketDates:M,bookingOpenTime:O,hideDates:I,openTypeName:A}=e,D=void 0===A?"":A;N[0]!==O||N[1]!==I||N[2]!==D||N[3]!==M?(s=()=>g(M,O,I,D),N[0]=O,N[1]=I,N[2]=D,N[3]=M,N[4]=s):s=N[4];let[L,B]=(0,a.useState)(s);N[5]!==O||N[6]!==I||N[7]!==D||N[8]!==M?(m=()=>{requestAnimationFrame(function(){B(g(M,O,I,D))})},v=[M,O,
---
-JS bfe/_next/static/chunks/15f_iik0_x1tt.js [schedules] }){let i=s.DateTime.fromFormat(e,E),a=r.reduce((e,t)=>{let r=s.DateTime.fromFormat(t.checkStartTime,E);return r<e?r:e},i);return a.isValid?(a>t?a:t).toFormat(E):t.toFormat(E)}],584383);var _=e.i(573951);async function k({goodsKey:e,playStartDate:t,playEndDate:r}){let i=new URL("/ticket/products/api/schedules",window.location.origin);i.searchParams.set("goodsKey",e),i.searchParams.set("playStartDate",t),i.searchParams.set("playEndDate",r);let a=await fetch(i);if(!a.ok){let t=new _.ApiError(a);throw t.capture({goodsKey:e}),t}return await a.json()}let P="yyyy-MM-dd";function j({goodsKey:e,minPlayStartDate
---
-JS bfe/_next/static/chunks/15f_iik0_x1tt.js [schedules] ch(i);if(!a.ok){let t=new _.ApiError(a);throw t.capture({goodsKey:e}),t}return await a.json()}let P="yyyy-MM-dd";function j({goodsKey:e,minPlayStartDate:t,maxPlayEndDate:r,deliveryMethodCode:i,deliveryDate:a,deliveryBookingDays:o,propertyList:n,presalesTimes:l,initialStartDate:c}){return{queryKey:["schedules",e,t,r,c,l],queryFn:async({pageParam:t})=>{let{startDate:s,endDate:c}=t,u=S(l),d=s,p=c,m=[];for(;;){let t=await k({goodsKey:e,playStartDate:d,playEndDate:p});if(m.push(...t.content),t.content.some(e=>C({schedule:e,deliveryMethodCode:i,deliveryDate:a,deliveryBookingDays:o,propertyList:n,activePresal
---
-JS bfe/_next/static/chunks/15f_iik0_x1tt.js [remain] ("react.memo_cache_sentinel")?(t=()=>{s(document.getElementById(rS))},r=[],a[0]=t,a[1]=r):(t=a[0],r=a[1]),(0,c.useLayoutEffect)(t,r),n)?(a[2]!==o||a[3]!==n?(i=(0,rC.createPortal)(o,n),a[2]=o,a[3]=n,a[4]=i):i=a[4],i):null}async function rN({goodsCode:e,playSeq:t}){let r=new URL("/ticket/products/api/remaining-seats",window.location.origin);r.searchParams.set("goodsCode",e),r.searchParams.set("playSeq",t);let i=await fetch(r);if(!i.ok){let r=new _.ApiError(i);throw r.capture({goodsCode:e,playSeq:t}),r}return await i.json()}function rR(e){let t,r,i,a,o,s,u,p,m,v,h=(0,l.c)(32),{schedules:f,goodsCode:g,h
---
-JS bfe/_next/static/chunks/15f_iik0_x1tt.js [remain] ms.set("playSeq",t);let i=await fetch(r);if(!i.ok){let r=new _.ApiError(i);throw r.capture({goodsCode:e,playSeq:t}),r}return await i.json()}function rR(e){let t,r,i,a,o,s,u,p,m,v,h=(0,l.c)(32),{schedules:f,goodsCode:g,hideRemainingSeatInfo:b,hideRemainingCount:y,selectedPlaySeq:w,onShowtimeSelect:x,remainingSeatNoticePlacement:E,enableVerticalScroll:_}=e,k=void 0===E?"portal":E;h[0]===Symbol.for("react.memo_cache_sentinel")?(t=[],h[0]=t):t=h[0];let P=(0,c.useRef)(t),j="inline"===k,C=_??j;if(h[1]!==g||h[2]!==f){let e;h[4]!==g?(e=e=>(function({goodsCode:e,playDate:t,playSeq:r,schedule:i}){return(0,V.q
---
-HOSTS
-  https://accounts.yanolja.com
-  https://board.yanolja.com/faq/content/index.html?id=468
-  https://board.yanolja.com/faq/content/index.html?id=474
-  https://board.yanolja.com/faq/content/index.html?id=501
-  https://dev-accounts.yanolja.com
-  https://dev-nol.yanolja.com
-  https://dev-nol.yanolja.com/discovery
-  https://dev-platform-site.yanolja.com
-  https://dev-smart-discovery-api.yanolja.com
-  https://fe-display-api.yanolja.com/gnb/v1/bi
-  https://fe-display-api.yanolja.com/gnb/v1/category-overview
-  https://nol.yanolja.com
-  https://nol.yanolja.com/discovery
-  https://platform-site.yanolja.com
-  https://policy.yanolja.com/pf/common/review?toolbar=true&embed=false&backtype=close
-  https://qa-accounts.yanolja.com
-  https://qa-nol.yanolja.com
-  https://qa-nol.yanolja.com/discovery
-  https://qa-platform-site.yanolja.com
-  https://qa-smart-discovery-api.yanolja.com
-  https://smart-discovery-api.yanolja.com
-  https://sso.yanolja.com
-  https://stage-accounts.yanolja.com
-  https://stage-nol.yanolja.com
-  https://stage-nol.yanolja.com/discovery
-  https://stage-platform-site.yanolja.com
-  https://stage-smart-discovery-api.yanolja.com
-  https://tickets.interpark.com
-  https://world.nol.com
-  https://yaimg.yanolja.com/joy/sunny/static/images/constants/img_thumbnail_noimage.svg
-  https://yaimg.yanolja.com/joy/sunny/static/images/ticket
-  https://yaimg.yanolja.com/v5/2025/12/19/05/6944e3d72a5113.88308939.gif
-  https://yaimg.yanolja.com/v5/2026/01/09/08/6960b86e0ebb73.63089310.svg
-  https://yaimg.yanolja.com/v5/2026/01/26/02/6976cc8a7ac233.37666804.png
+===== 2026-11-25 2026-11-29 200
+{"goodsKey":"26007159:15711202","goodsCode":"26007159","placeCode":"15711202","content":[{"playSeq":"174","playDate":"2026-11-25","playTime":"15:00","dayOfWeek":"Wed","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-25 12:00:00","cancelCloseTime":"2026-11-24 17:00:59","onlineCloseDate":"2026-11-21","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:10"},{"playSeq":"175","playDate":"2026-11-25","playTime":"19:30","dayOfWeek":"Wed","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-25 16:30:00","cancelCloseTime":"2026-11-24 17:00:59","onlineCloseDate":"2026-11-21","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:10"},{"playSeq":"176","playDate":"2026-11-26","playTime":"19:30","dayOfWeek":"Thu","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-26 16:30:00","cancelCloseTime":"2026-11-25 17:00:59","onlineCloseDate":"2026-11-22","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:10"},{"playSeq":"177","playDate":"2026-11-27","playTime":"19:30","dayOfWeek":"Fri","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-27 16:30:00","cancelCloseTime":"2026-11-26 17:00:59","onlineCloseDate":"2026-11-23","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:10"},{"playSeq":"178","playDate":"2026-11-28","playTime":"14:00","dayOfWeek":"Sat","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-28 11:00:00","cancelCloseTime":"2026-11-27 17:00:59","onlineCloseDate":"2026-11-24","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:10"},{"playSeq":"179","playDate":"2026-11-28","playTime":"18:30","dayOfWeek":"Sat","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-28 15:30:00","cancelCloseTime":"2026-11-27 17:00:59","onlineCloseDate":"2026-11-24","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:10"},{"playSeq":"180","playDate":"2026-11-29","playTime":"14:00","dayOfWeek":"Sun","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-29 11:00:00","cancelCloseTime":"2026-11-28 11:00:59","onlineCloseDate":"2026-11-25","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:10"},{"playSeq":"181","playDate":"2026-11-29","playTime":"18:30","dayOfWeek":"Sun","saleOpenTime":"2026-10-02 14:00:00","saleCloseTime":"2026-11-29 15:30:00","cancelCloseTime":"2026-11-28 11:00:59","onlineCloseDate":"2026-11-25","castingOpenTime":"9999-12-31 23:59:59","createdAt":"2026-10-13 14:14:11"}]}
+KEYS ['playSeq', 'playDate', 'playTime', 'dayOfWeek', 'saleOpenTime', 'saleCloseTime', 'cancelCloseTime', 'onlineCloseDate', 'castingOpenTime', 'createdAt']
+REMAIN 200 {"remainSeat":[{"playSeq":"174","seatGrade":"1","seatGradeName":"R석","remainCnt":132},{"playSeq":"174","seatGrade":"2","seatGradeName":"S석","remainCnt":47},{"playSeq":"174","seatGrade":"3","seatGradeName":"시야제한석","remainCnt":30}],"casting":[]}
+===== 2026-12-01 2026-12-10 200
+{"goodsKey":"26007159:15711202","goodsCode":"26007159","placeCode":"15711202","content":[]}
