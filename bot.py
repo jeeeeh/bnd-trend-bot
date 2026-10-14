@@ -43,9 +43,9 @@ ARTISTS = {NORM(w) for w in CFG.get("exclude_artists", [])} - {NORM(m) for m in 
 
 
 def is_excluded(term):
-    """다른 가수·그룹 이름, 음악방송·시상식 이름이면 제외"""
+    """다른 가수·그룹 이름, 음악방송·시상식 이름이면 제외 (조합이 이름 일부여도 제외: 제로 베이스 → 제로베이스원)"""
     n = NORM(term)
-    return n in ARTISTS or any(len(a) >= 4 and a in n for a in ARTISTS)
+    return n in ARTISTS or any(len(a) >= 4 and (a in n or (len(n) >= 4 and n in a)) for a in ARTISTS)
 KO_STOP = set(CFG["ko_stopwords"]) | SELF
 EN_STOP = set(CFG["en_stopwords"]) | SELF
 errors = []
@@ -142,7 +142,8 @@ ALIAS_RE = re.compile("|".join(re.escape(a) for a in ALIASES), re.I)
 def ko_terms(text):
     """(단어 집합, 2단어 조합 집합). 조합 = 문장 안에서 바로 이어지는 명사 두 개 (조사 사이에 껴도 OK)"""
     text = ALIAS_RE.sub(" | ", text)  # 그룹 이름 자리는 끊어서 조합이 넘어가지 않게
-    ok = lambda t: len(t) >= 2 and t not in KO_STOP and not t.isdigit() and not is_excluded(t)
+    ok = lambda t: (len(t) >= 2 and t not in KO_STOP and t not in EN_STOP and not t.isdigit()
+                    and not is_excluded(t) and not (t.isascii() and len(t) < 3))
     words, pairs = set(), set()
     if KIWI:
         prev, gap = None, 0
@@ -151,7 +152,7 @@ def ko_terms(text):
                 w = t.form.lower() if t.tag == "SL" else t.form
                 if ok(w):
                     words.add(w)
-                    if prev and gap <= 1 and prev != w:
+                    if prev and gap <= 1 and prev != w and not is_excluded(prev + w):
                         pairs.add(f"{prev} {w}")
                     prev, gap = w, 0
                 else:
